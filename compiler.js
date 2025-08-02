@@ -2,40 +2,85 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * Reads and returns the content of a .zl file as a string.
+ * Reads and compiles the content of a .zl file.
  * @param {string} filePath - Path to the .zl file.
- * @returns {string} - File contents as a string.
- * @throws {Error} - If the file does not end with .zl or cannot be read.
+ * @returns {string} - Content of the file.
  */
-function compile(filePath) {
-    if (typeof filePath !== 'string') {
-        throw new Error('File path must be a string.');
+function compileFile(filePath) {
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    // Add the new langauges compile logic here
+    return fileContent;
+}
+
+/**
+ * Recursively copies files, compiling .zl files to .js
+ * @param {string} inputPath - Path to source file or folder.
+ * @param {string} distPath - Destination path.
+ */
+function processAndCopy(inputPath, baseDistPath) {
+    const stats = fs.statSync(inputPath);
+
+    if (stats.isFile()) {
+        const relativePath = path.relative(process.cwd(), inputPath);
+        const distFilePath = path.join(baseDistPath, path.relative(path.resolve(inputPath, '..'), inputPath));
+
+        const distDir = path.dirname(distFilePath);
+        fs.mkdirSync(distDir, { recursive: true });
+
+        const ext = path.extname(inputPath);
+        if (ext === '.zl') {
+            const compiled = compileFile(inputPath);
+            const jsFilePath = distFilePath.replace(/\.zl$/, '.js');
+            fs.writeFileSync(jsFilePath, compiled);
+            console.log(`Compiled .zl -> .js: ${jsFilePath}`);
+        } else {
+            fs.copyFileSync(inputPath, distFilePath);
+            console.log(`Copied file: ${distFilePath}`);
+        }
+
+    } else if (stats.isDirectory()) {
+        const entries = fs.readdirSync(inputPath);
+        for (const entry of entries) {
+            const fullSrc = path.join(inputPath, entry);
+            processAndCopy(fullSrc, baseDistPath);
+        }
+    }
+}
+
+
+/**
+ * Clears or creates the dist directory, then starts processing.
+ * @param {string} inputPath - File or folder to process.
+ */
+function compile(inputPath) {
+    const resolvedInput = path.resolve(inputPath);
+    if (!fs.existsSync(resolvedInput)) {
+        throw new Error(`Path "${resolvedInput}" does not exist.`);
     }
 
-    if (!filePath.endsWith('.zl')) {
-        throw new Error('File must have a .zl extension.');
+    const distPath = path.resolve('./dist');
+
+    // Clear existing dist folder
+    if (fs.existsSync(distPath)) {
+        fs.rmSync(distPath, { recursive: true, force: true });
     }
 
-    try {
-        const absolutePath = path.resolve(filePath);
-        const fileContent = fs.readFileSync(absolutePath, 'utf-8');
-        return fileContent;
-    } catch (err) {
-        throw new Error(`Failed to read file: ${err.message}`);
-    }
+    fs.mkdirSync(distPath);
+
+    processAndCopy(resolvedInput, distPath);
+    console.log('Successfully compiled to .js');
 }
 
 // CLI handler
 if (require.main === module) {
     const inputPath = process.argv[2];
     if (!inputPath) {
-        console.error('Usage: node yourscript.js <path-to-file.zl>');
+        console.error('Usage: node compiler.js <path-to-file-or-folder>');
         process.exit(1);
     }
 
     try {
-        const content = compile(inputPath);
-        console.log('File Content:\n', content);
+        compile(inputPath);
     } catch (err) {
         console.error(err.message);
         process.exit(1);
