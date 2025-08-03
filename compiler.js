@@ -14,8 +14,6 @@ function compileFile(filePath) {
 function processFile(code){
   const tokens = tokenizeRecursive(code)
 
-  const fullyParsedTokens = []
-
     // Rules here
 
   console.log(tokens)
@@ -27,6 +25,10 @@ function processFile(code){
 
 function recursiveJoin(array){
   for(let i = 0; i < array.length; i++){
+    if(typeof array[i] === 'string' && array[i].includes('=>')){
+        array[i - 1] += array[i]
+        array[i] = ''
+    }
     if(Array.isArray(array[i])){
       array[i] = recursiveJoin(array[i])
     } else if(typeof array[i] === 'object') {
@@ -36,7 +38,7 @@ function recursiveJoin(array){
         array[i - 1] += `${key} \n ${value} ${key.endsWith('(') ? ')' : '}'}`
         array[i] = ''
       } else {
-        array[i] = `${key} \n ${value} ${key.endsWith('(') ? ')' : '}'}`
+        array[i] = `${key} \n ${value} \n ${key.endsWith('(') ? ')' : '}'}`
       }
     }
   }
@@ -120,6 +122,7 @@ function tokenizeRecursive(code, startIndex = 0) {
         tokens.push(tokenObj);
 
         current = ''; // Reset current
+        commentLine = false
         i = endIndex + 1;
         continue;
       }

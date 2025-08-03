@@ -1,117 +1,166 @@
 console.log( 
- 'test' )
+ 'test' 
+ )
 // Automatic semicolon insertion (ASI) edge case
 let x = 1
 ( 
  function( 
-  )
+  
+ )
 { 
  console.log( 
- 'IIFE works even without semicolon!' ) } )
+ 'IIFE works even without semicolon!' 
+ ) 
+ } 
+ )
 ( 
-  )
+  
+ )
 addEventListener( 
  'DOMContentLoaded', function( 
-  )
+  
+ )
 { 
  const titleElement = document.getElementById( 
- 'title' )
+ 'title' 
+ )
 titleElement.style.fontSize = '50px'
 // Traditional function with nested block
 function myFunc( 
-  )
+  
+ )
 { 
  console.log( 
- 'hello' )
+ 'hello' 
+ )
 if ( 
  true &&
-false )
+false 
+ )
 { 
  console.log( 
- 'hi' ) }
+ 'hi' 
+ ) 
+ }
 else if ( 
- true )
+ true 
+ )
 console.log( 
- 'else single-line' )
-// ASI on single line }
+ 'else single-line' 
+ )
+// ASI on single line 
+ }
 // Arrow function with block body
 const test = ( 
-  )=> { 
+  
+ )=> { 
  console.log( 
- 'test' ) }
+ 'test' 
+ ) }
 
 // Arrow function with implicit return
 const getValue = ( 
-  )
-=> 'implicit return'
+  
+ )=> 'implicit return'
+
 // Arrow returning object literal (wrapped in parentheses)
 const getObj = ( 
-  )=> ( 
+  
+ )=> ( 
  { 
- a: 1 } )
+ a: 1 
+ } )
 
 // Single-line for loop
 for ( 
- let i = 0;i < 3;i++ )
+ let i = 0;i < 3;i++ 
+ )
 console.log( 
- i )
+ i 
+ )
 // Multi-line for loop with empty block
 for ( 
- let i = 0;i < 2;i++ )
+ let i = 0;i < 2;i++ 
+ )
 { 
-  }
+  
+ }
 // While loop
 let y = 0
 while ( 
- y < 2 )
+ y < 2 
+ )
 y++
 // Do-while
 let z = 0
 do { 
- z++ }
+ z++ 
+ }
 while ( 
- z < 2 )
+ z < 2 
+ )
 // Ternary operator returning function
 const run = true ? ( 
-  )=> console.log( 
+  
+ )=> console.log( 
  'yes' )
 
 : ( 
-  )=> console.log( 
+  
+ )=> console.log( 
  'no' )
 
 run( 
-  )
+  
+ )
 // Template literals and optional chaining
 const name = 'Zach'
 console.log( 
- `Hello ${name?.toUpperCase()}` )
+ `Hello ${name?.toUpperCase()}` 
+ )
 // Try-catch-finally
 try { 
  throw new Error( 
- 'Oops' ) }
+ 'Oops' 
+ ) 
+ }
 catch ( 
- e )
+ e 
+ )
 { 
  console.warn( 
- 'Caught error:', e.message ) }
+ 'Caught error:', e.message 
+ ) 
+ }
 finally { 
  console.log( 
- 'Always runs' ) }
+ 'Always runs' 
+ ) 
+ }
 // Labeled block and break
 outer: { 
  console.log( 
- 'Before break' )
+ 'Before break' 
+ )
 break outer
 console.log( 
- 'Never runs' ) }
+ 'Never runs' 
+ ) 
+ }
 // Destructuring and default parameters
 const printUser = ( 
  { 
- name, age = 18 } )=> { 
+ name, age = 18 
+ } 
+ )=> { 
  console.log( 
- `${name} is ${age} years old` ) }
+ `${name} is ${age} years old` 
+ ) }
 
 printUser( 
  { 
- name: 'Alice' } )
+ name: 'Alice' 
+ } 
+ ) 
+ } 
+ )
