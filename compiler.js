@@ -29,9 +29,23 @@ function recursiveJoin(array){
   for(let i = 0; i < array.length; i++){
     if(Array.isArray(array[i])){
       array[i] = recursiveJoin(array[i])
+    } else if(typeof array[i] === 'object') {
+      const key = Object.keys(array[i])[0]
+      const value = joinRespectingKey(key, Object.values(array[i])[0])
+      if(key.includes('=>')){
+        array[i - 1] += `${key} \n ${value} ${key.endsWith('(') ? ')' : '}'}`
+        array[i] = ''
+      } else {
+        array[i] = `${key} \n ${value} ${key.endsWith('(') ? ')' : '}'}`
       }
+    }
   }
   return array.join('\n')
+}
+
+function joinRespectingKey(key, value){
+    if(key.includes('for')) return value.join(';')
+    return recursiveJoin(value)
 }
 
 function extractBlock(code, start) {
@@ -66,11 +80,13 @@ function tokenizeRecursive(code, startIndex = 0) {
   const len = code.length;
   let inString = false;
   let stringChar = '';
+  let commentLine = false;
+  let commentBlock = false
   
   while (i < len) {
     const char = code[i];
 
-    // String handling
+    // Handle strings
     if (inString) {
       current += char;
       if (char === stringChar && code[i - 1] !== '\\') {
@@ -80,8 +96,7 @@ function tokenizeRecursive(code, startIndex = 0) {
       continue;
     }
 
-    // Start of string
-    if (char === '"' || char === "'") {
+    if (!commentBlock && !commentLine && (char === '"' || char === "'" || char === '`')) {
       inString = true;
       stringChar = char;
       current += char;
@@ -89,25 +104,56 @@ function tokenizeRecursive(code, startIndex = 0) {
       continue;
     }
 
-    // Start of a block
-    if (char === '{' || char === '(') {
-        // Push previous token
-      current += char
-      if (current.trim()) tokens.push(current.trim());
-      current = '';
+    // Handle blocks
+    if (!commentLine && !commentBlock && !inString && (char === '{' || char === '(')) {
 
-      // Recurse to capture block
-      const { block, endIndex } = extractBlock(code, i);
-        tokens.push(tokenizeRecursive(block));  // Recursively tokenize the block
-      i = endIndex;
-      continue;
+        current+= char
+      // Push function signature before the block
+      if (current.trim()) {
+        const blockKey = current.trim();
+        const { block, endIndex } = extractBlock(code, i);
+
+        const tokenObj = {
+          [blockKey]: tokenizeRecursive(block)
+        };
+
+        tokens.push(tokenObj);
+
+        current = ''; // Reset current
+        i = endIndex + 1;
+        continue;
+      }
     }
 
-    // Statement separator (only at top level)
+    if(!commentLine){
+        if(char == '/' && i < len - 1 && code[i+1] == '/'){
+            commentLine = true
+            continue
+        }
+    }
+
+    if(!commentBlock){
+        if(char == '/' && i < len - 1 && code[i+1] == '*'){
+            commentBlock = true
+            continue
+        }
+    }
+
+    if(commentBlock){
+        if(char == '*' && i < len - 1 && code[i+1] == '/'){
+            commentBlock = false
+            continue
+        }
+    }
+
+    // End of statement (at top level)
     if ((char === ';' || char === '\n')) {
-      if (current.trim()) tokens.push(current.trim());
+      if (current.trim()) {
+        tokens.push(current.trim());
+      }
       current = '';
       i++;
+      commentLine = false
       continue;
     }
 
@@ -121,6 +167,7 @@ function tokenizeRecursive(code, startIndex = 0) {
 
   return tokens;
 }
+
 
 
 
