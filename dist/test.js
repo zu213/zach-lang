@@ -1,6 +1,35 @@
-console.log('test');
+console.log(
+'test'
+)
+addEventListener(
+'DOMContentLoaded', function(
 
-addEventListener('DOMContentLoaded', function() {
-  const titleElement = document.getElementById('title')
-  titleElement.style.fontSize = '50px'
-})
+) {
+const titleElement = document.getElementById(
+'title'
+)
+titleElement.style.fontSize = '50px'
+function myFunc(
+
+) {
+console.log(
+'hello'
+)
+if(
+true &&
+false
+){
+console.log(
+'hi'
+)
+}
+}
+const test = (
+
+) => {
+console.log(
+'test'
+)
+}
+}
+)

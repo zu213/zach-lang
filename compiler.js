@@ -7,10 +7,122 @@ const path = require('path');
  * @returns {string} - Content of the file.
  */
 function compileFile(filePath) {
-    const fileContent = fs.readFileSync(filePath, 'utf-8');
-    // Add the new langauges compile logic here
-    return fileContent;
+  const fileContent = fs.readFileSync(filePath, 'utf-8');
+  return processFile(fileContent)
 }
+
+function processFile(code){
+  const tokens = tokenizeRecursive(code)
+
+  const fullyParsedTokens = []
+
+    // Rules here
+
+  console.log(tokens)
+
+
+  const processedContent = recursiveJoin(tokens)
+  return processedContent;
+}
+
+function recursiveJoin(array){
+  for(let i = 0; i < array.length; i++){
+    if(Array.isArray(array[i])){
+      array[i] = recursiveJoin(array[i])
+      }
+  }
+  return array.join('\n')
+}
+
+function extractBlock(code, start) {
+  const openChar = code[start];
+  const closeChar = openChar === '{' ? '}' : ')';
+  let depth = 1;
+  let i = start + 1;
+
+  while (i < code.length) {
+    const char = code[i];
+
+    if (char === openChar) depth++;
+    else if (char === closeChar) depth--;
+
+    if (depth === 0) {
+      return {
+        block: code.slice(start + 1, i),
+        endIndex: i
+      };
+    }
+
+    i++;
+  }
+
+  throw new Error(`Unmatched ${openChar} at position ${start}`);
+}
+
+function tokenizeRecursive(code, startIndex = 0) {
+  const tokens = [];
+  let current = '';
+  let i = startIndex;
+  const len = code.length;
+  let inString = false;
+  let stringChar = '';
+  
+  while (i < len) {
+    const char = code[i];
+
+    // String handling
+    if (inString) {
+      current += char;
+      if (char === stringChar && code[i - 1] !== '\\') {
+        inString = false;
+      }
+      i++;
+      continue;
+    }
+
+    // Start of string
+    if (char === '"' || char === "'") {
+      inString = true;
+      stringChar = char;
+      current += char;
+      i++;
+      continue;
+    }
+
+    // Start of a block
+    if (char === '{' || char === '(') {
+        // Push previous token
+      current += char
+      if (current.trim()) tokens.push(current.trim());
+      current = '';
+
+      // Recurse to capture block
+      const { block, endIndex } = extractBlock(code, i);
+        tokens.push(tokenizeRecursive(block));  // Recursively tokenize the block
+      i = endIndex;
+      continue;
+    }
+
+    // Statement separator (only at top level)
+    if ((char === ';' || char === '\n')) {
+      if (current.trim()) tokens.push(current.trim());
+      current = '';
+      i++;
+      continue;
+    }
+
+    current += char;
+    i++;
+  }
+
+  if (current.trim()) {
+    tokens.push(current.trim());
+  }
+
+  return tokens;
+}
+
+
 
 /**
  * Recursively copies files, compiling .zl files to .js
