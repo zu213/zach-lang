@@ -2,27 +2,39 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * Reads and compiles the content of a .zl file.
- * @param {string} filePath - Path to the .zl file.
- * @returns {string} - Content of the file.
+ * Check if the input is valid for compilation
+ * @param {Object[]} array of tokens.
+ * @returns {string[]} - array of just strings.
  */
-function compileFile(filePath) {
-  const fileContent = fs.readFileSync(filePath, 'utf-8');
-  return processFile(fileContent)
+function enforceLanguageRules(tokens){
+    
 }
 
-function processFile(code){
-  const tokens = tokenizeRecursive(code)
-
-    // Rules here
-
-  console.log(tokens)
-
-
-  const processedContent = recursiveJoin(tokens)
-  return processedContent;
+/**
+ * Flatten the array for changing
+ * @param {Object[]} array of tokens.
+ * @returns {string[]} - array of just strings.
+ */
+function flattenTokens(tokens){
+    const returnArray = []
+    for(let i = 0; i < tokens.length; i++){
+        const currentToken = tokens[i]
+        if(typeof currentToken === 'object'){
+            const key = Object.keys(currentToken)[0]
+            returnArray.push(key)
+            returnArray.push(...flattenTokens(currentToken[key]));
+        } else {
+            returnArray.push(currentToken)
+        }
+    }
+    return returnArray
 }
 
+/**
+ * Recursively join the tokenised code with \n characters
+ * @param {Object[]} array of tokens.
+ * @returns {string} - string of joined up code.
+ */
 function recursiveJoin(array){
   for(let i = 0; i < array.length; i++){
     if(typeof array[i] === 'string' && array[i].includes('=>')){
@@ -45,11 +57,23 @@ function recursiveJoin(array){
   return array.join('\n')
 }
 
+/**
+ * Adds rules for joining, atm only has custom rules for for
+ * @param {string} key name e.g. 'for'.
+ * @param {string} value content e.g.(const a of b).
+ * @returns {string} - string of joined up code.
+ */
 function joinRespectingKey(key, value){
     if(key.includes('for')) return value.join(';')
     return recursiveJoin(value)
 }
 
+/**
+ * Extracts the string between two brackets to allow recursion
+ * @param {string} string of code.
+ * @param {string} start index.
+ * @returns {Object{string, index}} - Object including block of relevant code and end index.
+ */
 function extractBlock(code, start) {
   const openChar = code[start];
   const closeChar = openChar === '{' ? '}' : ')';
@@ -68,27 +92,32 @@ function extractBlock(code, start) {
         endIndex: i
       };
     }
-
     i++;
   }
 
   throw new Error(`Unmatched ${openChar} at position ${start}`);
 }
 
-function tokenizeRecursive(code, startIndex = 0) {
+/**
+ * Goes through chracters of code and put them into lists of Objects
+ * @param {string} string of code.
+ * @returns {Object[]} - array of objects or strings.
+ */
+function tokenizeRecursive(code) {
   const tokens = [];
   let current = '';
-  let i = startIndex;
+  let i = 0;
   const len = code.length;
   let inString = false;
   let stringChar = '';
   let commentLine = false;
   let commentBlock = false
   
+  // iterate through code characters
   while (i < len) {
     const char = code[i];
 
-    // Handle strings
+    // Turn off string skip
     if (inString) {
       current += char;
       if (char === stringChar && code[i - 1] !== '\\') {
@@ -98,6 +127,7 @@ function tokenizeRecursive(code, startIndex = 0) {
       continue;
     }
 
+    // Turn on string skip
     if (!commentBlock && !commentLine && (char === '"' || char === "'" || char === '`')) {
       inString = true;
       stringChar = char;
@@ -106,10 +136,31 @@ function tokenizeRecursive(code, startIndex = 0) {
       continue;
     }
 
+    
+    // turn off comment block skip
+    if(commentBlock){
+        if(char == '*' && i < len - 1 && code[i+1] == '/'){
+            commentBlock = false
+        }
+        continue
+    }
+
+    // turn on comment skip
+    if(!commentLine && !commentBlock && char == '/' && i < len - 1){
+        if(code[i+1] == '/'){
+            commentLine = true
+            continue
+        }
+        if(code[i+1] == '*'){
+            commentBlock = true
+            continue
+        }
+    }
+
     // Handle blocks
     if (!commentLine && !commentBlock && !inString && (char === '{' || char === '(')) {
 
-        current+= char
+      current+= char
       // Push function signature before the block
       if (current.trim()) {
         const blockKey = current.trim();
@@ -128,27 +179,6 @@ function tokenizeRecursive(code, startIndex = 0) {
       }
     }
 
-    if(!commentLine){
-        if(char == '/' && i < len - 1 && code[i+1] == '/'){
-            commentLine = true
-            continue
-        }
-    }
-
-    if(!commentBlock){
-        if(char == '/' && i < len - 1 && code[i+1] == '*'){
-            commentBlock = true
-            continue
-        }
-    }
-
-    if(commentBlock){
-        if(char == '*' && i < len - 1 && code[i+1] == '/'){
-            commentBlock = false
-            continue
-        }
-    }
-
     // End of statement (at top level)
     if ((char === ';' || char === '\n')) {
       if (current.trim()) {
@@ -164,6 +194,7 @@ function tokenizeRecursive(code, startIndex = 0) {
     i++;
   }
 
+  // End of file catch last line
   if (current.trim()) {
     tokens.push(current.trim());
   }
@@ -171,8 +202,25 @@ function tokenizeRecursive(code, startIndex = 0) {
   return tokens;
 }
 
+/**
+ * Reads and compiles the content of a .zl file.
+ * @param {string} filePath - Path to the .zl file.
+ * @returns {string} - Content of the file.
+ */
+function compileFile(filePath) {
+  const fileContent = fs.readFileSync(filePath, 'utf-8');
+  const tokens = tokenizeRecursive(fileContent)
 
+  // Rules here
+  const flatTokens = flattenTokens(tokens)
+  // check if valid first
+  enforceLanguageRules(tokens) 
+  // strip zl changes
+  processedTokens = tokens
 
+  const processedContent = recursiveJoin(tokens)
+  return processedContent;
+}
 
 /**
  * Recursively copies files, compiling .zl files to .js
@@ -183,7 +231,6 @@ function processAndCopy(inputPath, baseDistPath) {
     const stats = fs.statSync(inputPath);
 
     if (stats.isFile()) {
-        const relativePath = path.relative(process.cwd(), inputPath);
         const distFilePath = path.join(baseDistPath, path.relative(path.resolve(inputPath, '..'), inputPath));
 
         const distDir = path.dirname(distFilePath);
