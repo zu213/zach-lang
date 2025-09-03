@@ -137,6 +137,14 @@ finally {
  'Always runs' 
  ) 
  }
+function test123( 
+  
+ )
+{ 
+ console.log( 
+ 'test123' 
+ ) 
+ }
 // Labeled block and break
 outer: { 
  console.log( 
