@@ -15,12 +15,9 @@ function compileFile(filePath) {
   const tokens = tokenizeRecursive(fileContent)
 
   // Rules here
+  processedTokens = enforceLanguageRules(tokens) 
   //const flatTokens = flattenTokens(tokens)
-  
   // printTokens(tokens)
-  enforceLanguageRules(tokens) 
-  // strip zl changes
-  processedTokens = tokens
 
   const processedContent = recursiveJoin(tokens)
   return processedContent;
