@@ -45,7 +45,7 @@ function enforceLanguageRules(tokens, rules=[]){
 
 
   })
-  console.log(tokens)
+  //console.log(tokens)
 
   const ruleNames = rules.map(e => Object.keys(e)[0])
 
@@ -82,13 +82,44 @@ function validateRule(rule, details){
   // is initial rule declaration
   if(Object.values(rule)[0] == details) {
     return stripToJS(details)
-  }  
-  console.log(rule, details)
+  }
+
+  for(let  i = 0; i < details.length; i++) {
+    if(!typeof details[i] == typeof rule[i]){
+      //error
+    }
+    if(typeof details[i] == 'object'){
+      validateRule(rule[i], details[i])
+    }
+  }
+
+  //console.log(rule, 'details:',details)
   return details
 }
 
-function stripToJS(stringToStrip) {
-  return stringToStrip
+function stripToJS(toStrip) {
+  //console.log(toStrip)
+  let outputArr = []
+  for(const string of toStrip){
+    if(typeof string === 'string'){
+      outputArr.push(stripStringToJS(string))
+    } else if(Array.isArray(string)) {
+      outputArr.push(stripToJS(string))
+    } else if(typeof string == 'object' && string !== null) {
+      let obj = {}
+      const key = stripStringToJS(Object.keys(string)[0])
+      const value = Object.values(string)[0]
+      obj[stripStringToJS(key)] = stripToJS([...value])
+      outputArr.push(obj)
+    }
+  }
+  return outputArr
+}
+
+function stripStringToJS(stringToStrip){
+  const commaSplit = stringToStrip.split(',')
+  //console.log(stringToStrip)
+  return commaSplit.map(e => e.split('|')[0]).join(',')
 }
 
 module.exports = { enforceLanguageRules };
