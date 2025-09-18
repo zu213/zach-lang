@@ -3,17 +3,28 @@
  * @param {Object[]} array of tokens.
  * @returns {string[]} - array of just strings.
  */
-function enforceLanguageRules(tokens, rules=[]){
+function enforceLanguageRules(tokens, rules=[], vars=[]){
 
   // Collect rules
   for(let i = 0; i < tokens.length; i++) {
+    var name
     if(typeof tokens[i] == 'object'){
-      const name = Object.keys(tokens[i])[0]
+      name = Object.keys(tokens[i])[0]
       if(name.includes('function')) {
         rules.push(tokens[i])
       } else if(name.includes('=>')) {
         rules.push(tokens[i-1])
       }
+     
+    } else if(typeof tokens[i] == 'string'){
+      name = tokens[i]
+    }
+
+    if(name.includes('const') || name.includes('var') || name.includes('let')) {
+      const varInfo = name.split('=')[0].split(':')
+      if(varInfo.length < 2) continue
+      const varObj = {var: varInfo[0].replace(/^(?:const|let|var)\s+/, '').trim(), type: varInfo[1].trim()}
+      vars.push(varObj)
     }
   }
 
@@ -45,7 +56,6 @@ function enforceLanguageRules(tokens, rules=[]){
 
 
   })
-  //console.log(tokens)
 
   const ruleNames = rules.map(e => Object.keys(e)[0])
 
@@ -61,14 +71,15 @@ function enforceLanguageRules(tokens, rules=[]){
       for(const ruleName of ruleNames){
         if(tokenName.includes(ruleName)){
           functionCall = true
-          obj[tokenName] = validateRule(rules.find(e => Object.keys(e) == ruleName), Object.values(token)[0])
+          const currentRule = rules.find(e => Object.keys(e) == ruleName)
+          obj[tokenName] = validateRules(Object.values(currentRule), Object.values(token))
           tokens[i] = obj
           break
         }
       }
 
       if(!functionCall){
-        obj[tokenName] = enforceLanguageRules(Object.values(token)[0], rules)
+        obj[tokenName] = enforceLanguageRules(Object.values(token)[0], rules, vars)
         tokens[i] = obj
       }
     }
@@ -78,18 +89,38 @@ function enforceLanguageRules(tokens, rules=[]){
     
 }
 
-function validateRule(rule, details){
+function deepEqual(a, b) {
+  if (a === b) return true;
+
+  if (typeof a !== typeof b) return false;
+
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    return a.every((val, i) => deepEqual(val, b[i]));
+  }
+
+  if (a && b && typeof a === "object") {
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+    return keysA.every(key => deepEqual(a[key], b[key]));
+  }
+
+  return false;
+}
+
+function validateRules(rules, details){
   // is initial rule declaration
-  if(Object.values(rule)[0] == details) {
+  if(deepEqual(rules, details)) {
     return stripToJS(details)
   }
 
   for(let  i = 0; i < details.length; i++) {
-    if(!typeof details[i] == typeof rule[i]){
+    if(!typeof details[i] == typeof rules[i]){
       //error
     }
     if(typeof details[i] == 'object'){
-      validateRule(rule[i], details[i])
+      validateRule(rules[i], details[i])
     }
   }
 
@@ -97,8 +128,11 @@ function validateRule(rule, details){
   return details
 }
 
+function validateRule(rule, detail) {
+  return typeof rule === typeof detail
+}
+
 function stripToJS(toStrip) {
-  //console.log(toStrip)
   let outputArr = []
   for(const string of toStrip){
     if(typeof string === 'string'){
@@ -117,7 +151,7 @@ function stripToJS(toStrip) {
 }
 
 function stripStringToJS(stringToStrip){
-  const commaSplit = stringToStrip.split(',')
+  const commaSplit = stringToStrip.split(',').map(e => e.trim())
   //console.log(stringToStrip)
   return commaSplit.map(e => e.split('|')[0]).join(',')
 }

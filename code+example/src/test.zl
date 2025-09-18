@@ -1,5 +1,7 @@
 console.log('test')
 
+const test = Array.isArray('')
+
 // Automatic semicolon insertion (ASI) edge case
 let x = 1
 (function() {
@@ -53,7 +55,7 @@ addEventListener('DOMContentLoaded', function() {
   run()
 
   // Template literals and optional chaining
-  const name = 'Zach'
+  const name : string = 'Zach'
   console.log(`Hello ${name?.toUpperCase()}`)
 
   // Try-catch-finally
@@ -65,7 +67,7 @@ addEventListener('DOMContentLoaded', function() {
     console.log('Always runs')
   }
 
-  function test123() {
+  function test123(temp) {
     console.log('test123')
   }
 
@@ -77,9 +79,17 @@ addEventListener('DOMContentLoaded', function() {
   }
 
   // Destructuring and default parameters
-  const printUser = ({ name, age = 18 }) => {
+  const printUser = ({ name, age = 18 }, te) => {
     console.log(`${name} is ${age} years old`)
   }
 
   printUser({ name: 'Alice' })
+
+
+  // type test
+  const typeTest = ({ name | string, age = 18 }, te | object) => {
+    console.log(`${name} is ${age} years old`)
+  }
+
+  typeTest({ name: 'Alice' }, {})
 })

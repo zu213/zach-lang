@@ -19,7 +19,7 @@ function compileFile(filePath) {
   //const flatTokens = flattenTokens(tokens)
   // printTokens(tokens)
 
-  const processedContent = recursiveJoin(tokens)
+  const processedContent = recursiveJoin(processedTokens)
   return processedContent;
 }
 

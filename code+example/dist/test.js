@@ -1,6 +1,9 @@
 console.log( 
  'test' 
  )
+const test = Array.isArray( 
+ '' 
+ )
 // Automatic semicolon insertion (ASI) edge case
 let x = 1
 ( 
@@ -114,7 +117,7 @@ run(
   
  )
 // Template literals and optional chaining
-const name = 'Zach'
+const name : string = 'Zach'
 console.log( 
  `Hello ${name?.toUpperCase()}` 
  )
@@ -138,7 +141,7 @@ finally {
  ) 
  }
 function test123( 
-  
+ temp 
  )
 { 
  console.log( 
@@ -158,8 +161,9 @@ console.log(
 // Destructuring and default parameters
 const printUser = ( 
  { 
- name, age = 18 
- } 
+ name,age = 18 
+ }
+,te 
  )=> { 
  console.log( 
  `${name} is ${age} years old` 
@@ -168,6 +172,25 @@ const printUser = (
 printUser( 
  { 
  name: 'Alice' 
+ } 
+ )
+// type test
+const typeTest = ( 
+ { 
+ name ,age = 18 
+ }
+,te  
+ )=> { 
+ console.log( 
+ `${name} is ${age} years old` 
+ ) }
+
+typeTest( 
+ { 
+ name: 'Alice' 
+ }
+, { 
+  
  } 
  ) 
  } 
