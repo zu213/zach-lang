@@ -67,6 +67,15 @@ addEventListener('DOMContentLoaded', function() {
     console.log('Always runs')
   }
 
+  const test2 : test = () => {
+    console.log('test')
+  }
+
+  const test3 : test = () => 
+  console.log('test')
+
+  const a : b = a => console.log(b)
+
   function test123(temp) {
     console.log('test123')
   }
@@ -92,4 +101,12 @@ addEventListener('DOMContentLoaded', function() {
   }
 
   typeTest({ name: 'Alice' }, {})
+
+  const typeTest2 = ({ name | string, test: {age | number} }, te | object) => {
+    console.log(`${name} is ${age} years old`)
+  }
+
+  typeTest2({ name: 'Alice', test: {age: 5} }, {})
+
+  typeTest2({ name: 'Alice', test: {age: 7} }, {})
 })

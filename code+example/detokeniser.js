@@ -14,11 +14,12 @@ function recursiveJoin(array){
     } else if(typeof array[i] === 'object') {
       const key = Object.keys(array[i])[0]
       const value = joinRespectingKey(key, Object.values(array[i])[0])
-      if(key.includes('=>')){
-        array[i - 1] += `${key} \n ${value} ${key.endsWith('(') ? ')' : '}'}`
-        array[i] = ''
+      if(key.startsWith('=>')){
+        const lineSplit = key.split('=>')
+        array[i - 1] += lineSplit[0] + '=>'
+        array[i] = `${lineSplit[1]} \n ${value} ${key.endsWith('(') ? ')' : key.endsWith('{') ? '}' : '\n'}`
       } else {
-        array[i] = `${key} \n ${value} \n ${key.endsWith('(') ? ')' : '}'}`
+        array[i] = `${key} \n ${value} \n ${key.endsWith('(') ? ')' : key.endsWith('{') ? '}' : '\n'}`
       }
     }
   }

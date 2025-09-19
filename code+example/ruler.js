@@ -8,7 +8,8 @@ function enforceLanguageRules(tokens, rules=[], vars=[]){
   // Collect rules
   for(let i = 0; i < tokens.length; i++) {
     var name
-    if(typeof tokens[i] == 'object'){
+    const object = typeof tokens[i] == 'object'
+    if(object){
       name = Object.keys(tokens[i])[0]
       if(name.includes('function')) {
         rules.push(tokens[i])
@@ -23,6 +24,13 @@ function enforceLanguageRules(tokens, rules=[], vars=[]){
     if(name.includes('const') || name.includes('var') || name.includes('let')) {
       const varInfo = name.split('=')[0].split(':')
       if(varInfo.length < 2) continue
+      if(object){
+        let obj = {}
+        obj[stripTag(name)] = Object.values(tokens[i])[0]
+        tokens[i] = obj
+      } else {
+        tokens[i] = stripTag(name)
+      }
       const varObj = {var: varInfo[0].replace(/^(?:const|let|var)\s+/, '').trim(), type: varInfo[1].trim()}
       vars.push(varObj)
     }
@@ -69,10 +77,11 @@ function enforceLanguageRules(tokens, rules=[], vars=[]){
       let obj = {}
       // search through rules if a function is being called
       for(const ruleName of ruleNames){
-        if(tokenName.includes(ruleName)){
+        const name = extractName(tokenName)
+        if(name == ruleName){
           functionCall = true
           const currentRule = rules.find(e => Object.keys(e) == ruleName)
-          obj[tokenName] = validateRules(Object.values(currentRule), Object.values(token))
+          obj[tokenName] = validateRules(Object.values(currentRule), Object.values(token), vars)
           tokens[i] = obj
           break
         }
@@ -87,6 +96,16 @@ function enforceLanguageRules(tokens, rules=[], vars=[]){
 
   return tokens
     
+}
+
+function stripTag(string) {
+  const splitByEquals = string.split('=')
+  return splitByEquals[0].split(':')[0] + '=' + splitByEquals[1]
+}
+
+function extractName(str) {
+  const match = str.match(/^(?:\s*(?:const|let|var)\s+)?([a-zA-Z_$][\w$]*)/);
+  return match ? match[1] : null;
 }
 
 function deepEqual(a, b) {
@@ -109,7 +128,7 @@ function deepEqual(a, b) {
   return false;
 }
 
-function validateRules(rules, details){
+function validateRules(rules, details, vars){
   // is initial rule declaration
   if(deepEqual(rules, details)) {
     return stripToJS(details)
@@ -120,7 +139,8 @@ function validateRules(rules, details){
       //error
     }
     if(typeof details[i] == 'object'){
-      validateRule(rules[i], details[i])
+      //console.log('juan', rules[i], details[i], vars)
+      //validateRule(rules[i], details[i])
     }
   }
 
@@ -128,7 +148,19 @@ function validateRules(rules, details){
   return details
 }
 
-function validateRule(rule, detail) {
+function validateRule(rule, detail, vars) {
+  for(const ruleElement of rule){
+    if(typeof ruleElement == 'string'){
+      // bottom level rules
+    } else if(Array.isArray(ruleElement)) {
+      validateRule(ruleElement, detail, vars)
+    } else {
+      // object
+      for(const key of Object.keys(ruleElement)){
+        //validateRule(key, detail[key], vars)
+      }
+    }
+  }
   return typeof rule === typeof detail
 }
 

@@ -56,11 +56,11 @@ console.log(
 // Arrow function with block body
 const test = ( 
   
- )=> { 
+ )=>
+ { 
  console.log( 
  'test' 
  ) }
-
 // Arrow function with implicit return
 const getValue = ( 
   
@@ -69,11 +69,11 @@ const getValue = (
 // Arrow returning object literal (wrapped in parentheses)
 const getObj = ( 
   
- )=> ( 
+ )=>
+ ( 
  { 
  a: 1 
  } )
-
 // Single-line for loop
 for ( 
  let i = 0;i < 3;i++ 
@@ -105,19 +105,19 @@ while (
 // Ternary operator returning function
 const run = true ? ( 
   
- )=> console.log( 
+ )=>
+ console.log( 
  'yes' )
-
 : ( 
   
- )=> console.log( 
+ )=>
+ console.log( 
  'no' )
-
 run( 
   
  )
 // Template literals and optional chaining
-const name : string = 'Zach'
+const name = 'Zach'
 console.log( 
  `Hello ${name?.toUpperCase()}` 
  )
@@ -140,6 +140,24 @@ finally {
  'Always runs' 
  ) 
  }
+const test2 = ( 
+  
+ )=>
+ { 
+ console.log( 
+ 'test' 
+ ) }
+const test3 = ( 
+  
+ )=>
+
+console.log( 
+ 'test' 
+ )
+const a = a  
+ b 
+ 
+
 function test123( 
  temp 
  )
@@ -164,11 +182,11 @@ const printUser = (
  name,age = 18 
  }
 ,te 
- )=> { 
+ )=>
+ { 
  console.log( 
  `${name} is ${age} years old` 
  ) }
-
 printUser( 
  { 
  name: 'Alice' 
@@ -180,14 +198,46 @@ const typeTest = (
  name ,age = 18 
  }
 ,te  
- )=> { 
+ )=>
+ { 
  console.log( 
  `${name} is ${age} years old` 
  ) }
-
 typeTest( 
  { 
  name: 'Alice' 
+ }
+, { 
+  
+ } 
+ )
+const typeTest2 = ( 
+ { 
+ name,test: { 
+ age  
+ } 
+ }
+,te  
+ )=>
+ { 
+ console.log( 
+ `${name} is ${age} years old` 
+ ) }
+typeTest2( 
+ { 
+ name: 'Alice', test: { 
+ age: 5 
+ } 
+ }
+, { 
+  
+ } 
+ )
+typeTest2( 
+ { 
+ name: 'Alice', test: { 
+ age: 7 
+ } 
  }
 , { 
   
