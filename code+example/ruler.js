@@ -81,7 +81,7 @@ function enforceLanguageRules(tokens, rules=[], vars=[]){
         if(name == ruleName){
           functionCall = true
           const currentRule = rules.find(e => Object.keys(e) == ruleName)
-          obj[tokenName] = validateRules(Object.values(currentRule), Object.values(token), vars)
+          obj[tokenName] = [[validateRules(Object.values(currentRule)[0], Object.values(token)[0][0], vars)]]
           tokens[i] = obj
           break
         }
@@ -130,38 +130,74 @@ function deepEqual(a, b) {
 
 function validateRules(rules, details, vars){
   // is initial rule declaration
-  if(deepEqual(rules, details)) {
-    return stripToJS(details)
+  if(deepEqual(rules[0], details)) {
+    return stripToJS([details])
   }
 
-  for(let  i = 0; i < details.length; i++) {
-    if(!typeof details[i] == typeof rules[i]){
-      //error
-    }
-    if(typeof details[i] == 'object'){
-      //console.log('juan', rules[i], details[i], vars)
-      //validateRule(rules[i], details[i])
-    }
+
+  if(typeof details == 'object'){
+    // for these functiosn if a type is declared it must be declared on all of that level
+    //thorowwwwww an error
+    console.log('error 0.5')
+    //validateRule(newRuleList, details[i], vars)
+  } else {
+    const newRuleList = transformRuleList(rules)
+    validateRule(newRuleList, details, vars)
   }
 
-  //console.log(rule, 'details:',details)
   return details
 }
 
 function validateRule(rule, detail, vars) {
-  for(const ruleElement of rule){
-    if(typeof ruleElement == 'string'){
-      // bottom level rules
-    } else if(Array.isArray(ruleElement)) {
-      validateRule(ruleElement, detail, vars)
-    } else {
-      // object
-      for(const key of Object.keys(ruleElement)){
-        //validateRule(key, detail[key], vars)
-      }
+  //i've decide i only take varaibles as params to simplify so details should be string
+  const splitDetails = detail.split(',')
+  if(splitDetails.length != rule.length){
+    // Error 
+    console.log('error 1')
+  }
+  splitDetails.map(e => e.trim())
+  for(let i =0; i < splitDetails.length; i++){
+    const type = vars.find(e => splitDetails[i])['type']
+    if(type != rule[i]['type']){
+      // also error
+      console.log('error 2')
     }
   }
-  return typeof rule === typeof detail
+}
+
+function transformRuleList(rule) {
+  let newRuleList = []
+  for(let i = 0; i < rule.length;  i++){
+    if(typeof rule[i] == 'string'){
+      // bottom level rules
+      const splitByComma = rule[i].split(',')
+      if(splitByComma.length > 1){
+        newRuleList = newRuleList.concat(transformRuleList(splitByComma))
+      } else {
+        const splitByBar = splitByComma[0].split('|')
+        if(splitByBar.length > 1){
+          newRuleList.push({name: splitByBar[0].trim(), tag: splitByBar[1]})
+        }
+      }
+    } else {
+      // object
+      for(const key of Object.keys(rule[i])){
+        const keySplit = key.split(',')
+        if(keySplit.length > 1){
+          for(let j = 0; j < keySplit.length - 1; j++){
+            newRuleList = newRuleList.concat(transformRuleList([keySplit[j]]))
+          }
+        }
+        if(rule.length - 1 == i) continue
+        const splitByComma = rule[i + 1].split(',')[0]
+        if(splitByComma.includes('|')){
+          newRuleList.push({name: keySplit[keySplit.length - 1].trim(), type: splitByComma.split('|')[1], value: transformRuleList(rule[i][key])})
+        }
+      }
+    }
+
+  }
+  return newRuleList.filter(e => e.value || e.name != '')
 }
 
 function stripToJS(toStrip) {
@@ -184,7 +220,6 @@ function stripToJS(toStrip) {
 
 function stripStringToJS(stringToStrip){
   const commaSplit = stringToStrip.split(',').map(e => e.trim())
-  //console.log(stringToStrip)
   return commaSplit.map(e => e.split('|')[0]).join(',')
 }
 

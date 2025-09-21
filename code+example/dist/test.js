@@ -180,8 +180,7 @@ console.log(
 const printUser = ( 
  { 
  name,age = 18 
- }
-,te 
+ } 
  )=>
  { 
  console.log( 
@@ -196,8 +195,7 @@ printUser(
 const typeTest = ( 
  { 
  name ,age = 18 
- }
-,te  
+ } 
  )=>
  { 
  console.log( 
@@ -206,9 +204,6 @@ const typeTest = (
 typeTest( 
  { 
  name: 'Alice' 
- }
-, { 
-  
  } 
  )
 const typeTest2 = ( 
@@ -216,8 +211,7 @@ const typeTest2 = (
  name,test: { 
  age  
  } 
- }
-,te  
+ } 
  )=>
  { 
  console.log( 
@@ -228,20 +222,25 @@ typeTest2(
  name: 'Alice', test: { 
  age: 5 
  } 
- }
-, { 
-  
  } 
  )
-typeTest2( 
- { 
- name: 'Alice', test: { 
- age: 7 
- } 
+const varObj = { 
+  
  }
-, { 
+const varObject = { 
+  
+ }
+typeTest2( 
+ varObj, varObject 
+ )
+const typeTest3 = ( 
+ { 
   
  } 
- ) 
+ )=>
+ { 
+ console.log( 
+ 'test' 
+ ) } 
  } 
  )
