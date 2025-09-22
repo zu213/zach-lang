@@ -1,3 +1,5 @@
+const { recursiveJoin } = require("./detokeniser")
+
 /**
  * Check if the input is valid for compilation
  * @param {Object[]} array of tokens.
@@ -81,14 +83,22 @@ function enforceLanguageRules(tokens, rules=[], vars=[]){
         if(name == ruleName){
           functionCall = true
           const currentRule = rules.find(e => Object.keys(e) == ruleName)
-          obj[tokenName] = [[validateRules(Object.values(currentRule)[0], Object.values(token)[0][0], vars)]]
+          const validatedTokens = validateRules(Object.values(currentRule)[0], Object.values(token)[0][0], vars)
+          if(validatedTokens == 1){
+            return 1
+          }
+          obj[tokenName] = [[validatedTokens]]
           tokens[i] = obj
           break
         }
       }
 
       if(!functionCall){
-        obj[tokenName] = enforceLanguageRules(Object.values(token)[0], rules, vars)
+        const validatedTokens = enforceLanguageRules(Object.values(token)[0], rules, vars)
+        if(validatedTokens == 1){
+          return 1
+        }
+        obj[tokenName] = validatedTokens
         tokens[i] = obj
       }
     }
@@ -129,40 +139,46 @@ function deepEqual(a, b) {
 }
 
 function validateRules(rules, details, vars){
-  // is initial rule declaration
   if(deepEqual(rules[0], details)) {
     return stripToJS([details])
   }
 
-
   if(typeof details == 'object'){
     // for these functiosn if a type is declared it must be declared on all of that level
-    //thorowwwwww an error
-    console.log('error 0.5')
-    //validateRule(newRuleList, details[i], vars)
+    console.log(`Error: Inputted raw type instead of tagged varaible near: ${recursiveJoin([details]).split('\n').join('')}`)
   } else {
     const newRuleList = transformRuleList(rules)
-    validateRule(newRuleList, details, vars)
+    if(validateRule(newRuleList, details, vars)){
+      // error
+      return 1
+    }
   }
 
   return details
 }
 
 function validateRule(rule, detail, vars) {
+  let errored = false
   //i've decide i only take varaibles as params to simplify so details should be string
   const splitDetails = detail.split(',')
   if(splitDetails.length != rule.length){
     // Error 
-    console.log('error 1')
+    errored = true
+    console.log(`Error: Missing parameter in ${detail}`)
   }
   splitDetails.map(e => e.trim())
   for(let i =0; i < splitDetails.length; i++){
-    const type = vars.find(e => splitDetails[i])['type']
-    if(type != rule[i]['type']){
-      // also error
-      console.log('error 2')
+    const correctVar = vars.find(e => e['var'] == splitDetails[i]) //['type']
+    if(!correctVar || !correctVar['type']){
+      errored = true
+      console.log(`Error: Invalid type, no corresponding tag found for ${splitDetails[i].trim()}`)
+    }
+    else if(correctVar['type'].trim() != rule[i]['type'].trim()){
+      errored = true
+      console.log(`Error: Invalid type, expected ${rule[i]['type']} got ${correctVar['type']}`)
     }
   }
+  return errored
 }
 
 function transformRuleList(rule) {

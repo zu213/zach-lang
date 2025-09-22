@@ -16,11 +16,16 @@ function compileFile(filePath) {
 
   // Rules here
   processedTokens = enforceLanguageRules(tokens) 
+
+  if(processedTokens == 1){
+    console.log(`Error's found failed to compile`)
+    return 1
+  }else{
+    const processedContent = recursiveJoin(processedTokens)
+    return processedContent;
+  }
   //const flatTokens = flattenTokens(tokens)
   // printTokens(tokens)
-
-  const processedContent = recursiveJoin(processedTokens)
-  return processedContent;
 }
 
 /**
@@ -40,6 +45,9 @@ function processAndCopy(inputPath, baseDistPath) {
         const ext = path.extname(inputPath);
         if (ext === '.zl') {
             const compiled = compileFile(inputPath);
+            if(compiled == 1) {
+                return 1
+            }
             const jsFilePath = distFilePath.replace(/\.zl$/, '.js');
             fs.writeFileSync(jsFilePath, compiled);
             console.log(`Compiled .zl -> .js: ${jsFilePath}`);
@@ -52,9 +60,13 @@ function processAndCopy(inputPath, baseDistPath) {
         const entries = fs.readdirSync(inputPath);
         for (const entry of entries) {
             const fullSrc = path.join(inputPath, entry);
-            processAndCopy(fullSrc, baseDistPath);
+            const returnValue = processAndCopy(fullSrc, baseDistPath);
+            if(returnValue == 1){
+                return 1
+            }
         }
     }
+    return 0
 }
 
 
@@ -77,8 +89,10 @@ function compile(inputPath) {
 
     fs.mkdirSync(distPath);
 
-    processAndCopy(resolvedInput, distPath);
-    console.log('Successfully compiled to .js');
+    const returnValue = processAndCopy(resolvedInput, distPath);
+    if(returnValue != 1){
+        console.log(`Successfully compiled to .js, return value: ${returnValue}`);
+    }
 }
 
 // CLI handler
