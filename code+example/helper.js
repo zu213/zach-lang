@@ -34,3 +34,30 @@ function printTokens(tokens){
      }
    }
 }
+
+/**
+ * Clears or creates the dist directory, then starts processing.
+ * @param {string} inputPath - File or folder to process.
+ * @returns {string[]} - array of just strings.
+ */
+function deepEqual(a, b) {
+  if (a === b) return true;
+
+  if (typeof a !== typeof b) return false;
+
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    return a.every((val, i) => deepEqual(val, b[i]));
+  }
+
+  if (a && b && typeof a === "object") {
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+    return keysA.every(key => deepEqual(a[key], b[key]));
+  }
+
+  return false;
+}
+
+module.exports = { deepEqual }

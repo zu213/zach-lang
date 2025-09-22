@@ -14,17 +14,16 @@ function compileFile(filePath) {
   const fileContent = fs.readFileSync(filePath, 'utf-8');
   const tokens = tokenizeRecursive(fileContent)
 
-  // Rules here
   processedTokens = enforceLanguageRules(tokens) 
 
-  if(processedTokens == 1){
+  if (processedTokens == 1) {
     console.log(`Error's found failed to compile`)
     return 1
-  }else{
+  } else {
     const processedContent = recursiveJoin(processedTokens)
     return processedContent;
   }
-  //const flatTokens = flattenTokens(tokens)
+  // const flatTokens = flattenTokens(tokens)
   // printTokens(tokens)
 }
 
@@ -55,7 +54,6 @@ function processAndCopy(inputPath, baseDistPath) {
             fs.copyFileSync(inputPath, distFilePath);
             console.log(`Copied file: ${distFilePath}`);
         }
-
     } else if (stats.isDirectory()) {
         const entries = fs.readdirSync(inputPath);
         for (const entry of entries) {

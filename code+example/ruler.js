@@ -1,8 +1,12 @@
 const { recursiveJoin } = require("./detokeniser")
+const { deepEqual } = require("./helper")
+const { stripTag, stripToJS } = require("./stripper")
 
 /**
  * Check if the input is valid for compilation
- * @param {Object[]} array of tokens.
+ * @param {any[]} array of tokens.
+ * @param {Object[]} array of rules.
+ * @param {Object[]} array of variables.
  * @returns {string[]} - array of just strings.
  */
 function enforceLanguageRules(tokens, rules=[], vars=[]){
@@ -63,8 +67,6 @@ function enforceLanguageRules(tokens, rules=[], vars=[]){
       obj[functionName] = Object.values(e)[0]
       return obj
     }
-
-
   })
 
   const ruleNames = rules.map(e => Object.keys(e)[0])
@@ -108,38 +110,26 @@ function enforceLanguageRules(tokens, rules=[], vars=[]){
     
 }
 
-function stripTag(string) {
-  const splitByEquals = string.split('=')
-  return splitByEquals[0].split(':')[0] + '=' + splitByEquals[1]
-}
-
+/**
+ * Extract the name (and type) of a declared variable.
+ * @param {string} input string of array token
+ * @returns {string} - string with just the name : tag.
+ */
 function extractName(str) {
   const match = str.match(/^(?:\s*(?:const|let|var)\s+)?([a-zA-Z_$][\w$]*)/);
   return match ? match[1] : null;
 }
 
-function deepEqual(a, b) {
-  if (a === b) return true;
-
-  if (typeof a !== typeof b) return false;
-
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) return false;
-    return a.every((val, i) => deepEqual(val, b[i]));
-  }
-
-  if (a && b && typeof a === "object") {
-    const keysA = Object.keys(a);
-    const keysB = Object.keys(b);
-    if (keysA.length !== keysB.length) return false;
-    return keysA.every(key => deepEqual(a[key], b[key]));
-  }
-
-  return false;
-}
-
+/**
+ * Clears or creates the dist directory, then starts processing.
+ * @param {any[]} array of rules to check.
+ * @param {string} array of details to check the rules against.
+ * @param {string[]} array of var declarations.
+ * @returns {string[]} - array of just strings.
+ */
 function validateRules(rules, details, vars){
   if(deepEqual(rules[0], details)) {
+    // If equal its the declaration so we strip
     return stripToJS([details])
   }
 
@@ -148,7 +138,31 @@ function validateRules(rules, details, vars){
     console.log(`Error: Inputted raw type instead of tagged varaible near: ${recursiveJoin([details]).split('\n').join('')}`)
   } else {
     const newRuleList = transformRuleList(rules)
-    if(validateRule(newRuleList, details, vars)){
+    const rule = newRuleList
+    const detail = details
+
+    let errored = false
+    //i've decide i only take varaibles as params to simplify so details should be string
+    const splitDetails = detail.split(',')
+    if(splitDetails.length != rule.length){
+      // Error 
+      errored = true
+      console.log(`Error: Missing parameter in ${detail}`)
+    }
+    splitDetails.map(e => e.trim())
+    for(let i =0; i < splitDetails.length; i++){
+      const correctVar = vars.find(e => e['var'] == splitDetails[i]) //['type']
+      if(!correctVar || !correctVar['type']){
+        errored = true
+        console.log(`Error: Invalid type, no corresponding tag found for ${splitDetails[i].trim()}`)
+      }
+      else if(correctVar['type'].trim() != rule[i]['type'].trim()){
+        errored = true
+        console.log(`Error: Invalid type, expected ${rule[i]['type']} got ${correctVar['type']}`)
+      }
+    }
+
+    if(errored){
       // error
       return 1
     }
@@ -157,30 +171,12 @@ function validateRules(rules, details, vars){
   return details
 }
 
-function validateRule(rule, detail, vars) {
-  let errored = false
-  //i've decide i only take varaibles as params to simplify so details should be string
-  const splitDetails = detail.split(',')
-  if(splitDetails.length != rule.length){
-    // Error 
-    errored = true
-    console.log(`Error: Missing parameter in ${detail}`)
-  }
-  splitDetails.map(e => e.trim())
-  for(let i =0; i < splitDetails.length; i++){
-    const correctVar = vars.find(e => e['var'] == splitDetails[i]) //['type']
-    if(!correctVar || !correctVar['type']){
-      errored = true
-      console.log(`Error: Invalid type, no corresponding tag found for ${splitDetails[i].trim()}`)
-    }
-    else if(correctVar['type'].trim() != rule[i]['type'].trim()){
-      errored = true
-      console.log(`Error: Invalid type, expected ${rule[i]['type']} got ${correctVar['type']}`)
-    }
-  }
-  return errored
-}
 
+/**
+ * Clears or creates the dist directory, then starts processing.
+ * @param {string} inputPath - File or folder to process.
+ * @returns {string[]} - array of just strings.
+ */
 function transformRuleList(rule) {
   let newRuleList = []
   for(let i = 0; i < rule.length;  i++){
@@ -214,29 +210,6 @@ function transformRuleList(rule) {
 
   }
   return newRuleList.filter(e => e.value || e.name != '')
-}
-
-function stripToJS(toStrip) {
-  let outputArr = []
-  for(const string of toStrip){
-    if(typeof string === 'string'){
-      outputArr.push(stripStringToJS(string))
-    } else if(Array.isArray(string)) {
-      outputArr.push(stripToJS(string))
-    } else if(typeof string == 'object' && string !== null) {
-      let obj = {}
-      const key = stripStringToJS(Object.keys(string)[0])
-      const value = Object.values(string)[0]
-      obj[stripStringToJS(key)] = stripToJS([...value])
-      outputArr.push(obj)
-    }
-  }
-  return outputArr
-}
-
-function stripStringToJS(stringToStrip){
-  const commaSplit = stringToStrip.split(',').map(e => e.trim())
-  return commaSplit.map(e => e.split('|')[0]).join(',')
 }
 
 module.exports = { enforceLanguageRules };
