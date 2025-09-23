@@ -61,34 +61,31 @@ function collectRules(tokens) {
       name = Object.keys(tokens[i])[0]
       if (name.includes('function')) {
         rules.push(tokens[i])
-      } else if (name.includes('=>')) {
+      } else if (name.includes('=>') && i > 0) {
         rules.push(tokens[i - 1])
       }
     }
   }
 
-  // remove empty rules
-  rules = rules.filter(e =>
+  return rules.filter(e =>
+    // Remove no string containing rules
     Object.values(e).every(
       v => v !== undefined && !(Array.isArray(v) && v.length === 0)
     )
-  )
-
-  // clean up function keys
-  return rules.map(e => {
+  ).map(e => {
+    // Clean up rules
     const rawName = Object.keys(e)[0]
     let obj = {}
     let functionName
 
+    // Extract both function declarations and arrow functions declarations
     if (rawName.includes('=')) {
       const parts = rawName.split('=')[0].trim().split(/\s+/)
       functionName = parts[parts.length - 1]
     } else {
       const parts = rawName.split('function')
       functionName = parts[parts.length - 1].trim()
-      if (functionName.endsWith("(")) {
-        functionName = functionName.slice(0, -1)
-      }
+      if (functionName.endsWith("(")) functionName = functionName.slice(0, -1)
     }
 
     obj[functionName] = Object.values(e)[0]
@@ -104,44 +101,31 @@ function collectRules(tokens) {
  * @returns {string[]} - array of just strings.
  */
 function applyRules(tokens, rules, vars) {
-  const ruleNames = rules.map(e => Object.keys(e)[0])
+  // Setup mapping of function names to rules
+  const ruleMap = new Map(rules.map(rule => [Object.keys(rule)[0], Object.values(rule)[0]]))
 
-  for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i]
-    if (typeof token !== 'object') continue
+  return tokens.map(token => {
+    if (typeof token !== "object") return token
 
     const tokenName = Object.keys(token)[0]
-    let updated = false
-    let obj = {}
-
-    // check if it's a function call
     const name = extractName(tokenName)
-    for (const ruleName of ruleNames) {
-      if (name === ruleName) {
-        const currentRule = rules.find(e => Object.keys(e)[0] === ruleName)
-        const validated = validateRules(
-          Object.values(currentRule)[0],
-          Object.values(token)[0][0],
-          vars
-        )
 
-        if (validated === 1) return 1
-        obj[tokenName] = [[validated]]
-        tokens[i] = obj
-        updated = true
-        break
-      }
-    }
-
-    if (!updated) {
-      const validated = enforceLanguageRules(Object.values(token)[0], rules, vars)
+    // Check for validity of rules and get back stripped code
+    if (ruleMap.has(name)) {
+      const validated = validateRules(
+        ruleMap.get(name),
+        Object.values(token)[0][0],
+        vars
+      )
       if (validated === 1) return 1
-      obj[tokenName] = validated
-      tokens[i] = obj
+      return { [tokenName]: [[validated]] }
     }
-  }
 
-  return tokens
+    // Recurse deeper if not a function call
+    const validated = enforceLanguageRules(Object.values(token)[0], rules, vars)
+    if (validated === 1) return 1
+    return { [tokenName]: validated }
+  })
 }
 
 /**
@@ -159,7 +143,7 @@ function extractName(str) {
  * @param {any[]} array of rules to check.
  * @param {string} array of details to check the rules against.
  * @param {string[]} array of var declarations.
- * @returns {string[]} - array of stripped to js strings.
+ * @returns {string[]} array of stripped to js strings.
  */
 function validateRules(rules, details, vars){
   if(deepEqual(rules[0], details)) {
@@ -167,25 +151,26 @@ function validateRules(rules, details, vars){
     return stripToJS([details])
   }
 
+  let errored = false
+
   if(typeof details == 'object'){
-    // for these functiosn if a type is declared it must be declared on all of that level
-    console.log(`Error: Inputted raw type instead of tagged varaible near: ${recursiveJoin([details]).split('\n').join('')}`)
+    // For these functiosn if a type is declared it must be declared on all of that level
+    console.log(`Error: Inputted raw type instead of tagged variable near: ${recursiveJoin([details]).split('\n').join('')}`)
+    ///errored = true
   } else {
     const newRuleList = transformRuleList(rules)
     const rule = newRuleList
     const detail = details
 
-    let errored = false
-    //i've decide i only take varaibles as params to simplify so details should be string
+    // I've decided it only take variables as params to simplify so details should be string
     const splitDetails = detail.split(',')
     if(splitDetails.length != rule.length){
-      // Error 
       errored = true
       console.log(`Error: Missing parameter in ${detail}`)
     }
-    splitDetails.map(e => e.trim())
+    splitDetails = splitDetails.map(e => e.trim())
     for(let i =0; i < splitDetails.length; i++){
-      const correctVar = vars.find(e => e['var'] == splitDetails[i]) //['type']
+      const correctVar = vars.find(e => e['var'] == splitDetails[i])
       if(!correctVar || !correctVar['type']){
         errored = true
         console.log(`Error: Invalid type, no corresponding tag found for ${splitDetails[i].trim()}`)
@@ -196,11 +181,10 @@ function validateRules(rules, details, vars){
       }
     }
 
-    if(errored){
-      // error
-      return 1
-    }
+    // Use errored so we can collect all the errors
   }
+
+  if(errored) return 1
 
   return details
 }
@@ -215,7 +199,7 @@ function transformRuleList(rule) {
   let newRuleList = []
   for(let i = 0; i < rule.length;  i++){
     if(typeof rule[i] == 'string'){
-      // bottom level rules
+      // Bottom level rules
       const splitByComma = rule[i].split(',')
       if(splitByComma.length > 1){
         newRuleList = newRuleList.concat(transformRuleList(splitByComma))
@@ -226,7 +210,7 @@ function transformRuleList(rule) {
         }
       }
     } else {
-      // object
+      // process Object recursively until we get strings
       for(const key of Object.keys(rule[i])){
         const keySplit = key.split(',')
         if(keySplit.length > 1){
@@ -234,7 +218,7 @@ function transformRuleList(rule) {
             newRuleList = newRuleList.concat(transformRuleList([keySplit[j]]))
           }
         }
-        if(rule.length - 1 == i) continue
+        if(rule.length - 1 >= i) continue
         const splitByComma = rule[i + 1].split(',')[0]
         if(splitByComma.includes('|')){
           newRuleList.push({name: keySplit[keySplit.length - 1].trim(), type: splitByComma.split('|')[1], value: transformRuleList(rule[i][key])})
