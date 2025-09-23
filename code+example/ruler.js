@@ -10,39 +10,64 @@ const { stripTag, stripToJS } = require("./stripper")
  * @returns {string[]} - array of just strings.
  */
 function enforceLanguageRules(tokens, rules=[], vars=[]){
+  tokens = processVariables(tokens, vars)
+  rules = collectRules(tokens)
+  return applyRules(tokens, rules, vars)
+}
 
-  // Collect rules
-  for(let i = 0; i < tokens.length; i++) {
-    var name
-    const object = typeof tokens[i] == 'object'
-    if(object){
-      name = Object.keys(tokens[i])[0]
-      if(name.includes('function')) {
-        rules.push(tokens[i])
-      } else if(name.includes('=>')) {
-        rules.push(tokens[i-1])
+/**
+ * Extract all the variables from a array of tokens
+ * @param {any[]} array of tokens.
+ * @param {Object[]} array of pre-existing variables.
+ * @returns {string[]} - array of variables.
+ */
+function processVariables(tokens, vars) {
+  return tokens.map(token => {
+    let name = typeof token === "object" ? Object.keys(token)[0] : token
+    if (typeof name !== "string") return token
+
+    // Test for varaible declarations
+    if (/^(const|let|var)\b/.test(name)) {
+      const [left, type] = name.split("=")[0].split(":")
+      if (!type) return token
+
+      const varName = left.replace(/^(?:const|let|var)\s+/, "").trim()
+      vars.push({ var: varName, type: type.trim() })
+
+      if (typeof token === "object") {
+        return { [stripTag(name)]: Object.values(token)[0] }
+      } else {
+        return stripTag(name)
       }
-     
-    } else if(typeof tokens[i] == 'string'){
-      name = tokens[i]
     }
 
-    if(name.includes('const') || name.includes('var') || name.includes('let')) {
-      const varInfo = name.split('=')[0].split(':')
-      if(varInfo.length < 2) continue
-      if(object){
-        let obj = {}
-        obj[stripTag(name)] = Object.values(tokens[i])[0]
-        tokens[i] = obj
-      } else {
-        tokens[i] = stripTag(name)
+    return token
+  })
+}
+
+/**
+ * Collect all the rules form functions in the code
+ * @param {any[]} array of tokens.
+ * @returns {Object[]} - array of rules objects.
+ */
+function collectRules(tokens) {
+  let rules = []
+
+  for (let i = 0; i < tokens.length; i++) {
+    const isObject = typeof tokens[i] === 'object'
+    let name
+
+    if (isObject) {
+      name = Object.keys(tokens[i])[0]
+      if (name.includes('function')) {
+        rules.push(tokens[i])
+      } else if (name.includes('=>')) {
+        rules.push(tokens[i - 1])
       }
-      const varObj = {var: varInfo[0].replace(/^(?:const|let|var)\s+/, '').trim(), type: varInfo[1].trim()}
-      vars.push(varObj)
     }
   }
 
-  // get out function with no params
+  // remove empty rules
   rules = rules.filter(e =>
     Object.values(e).every(
       v => v !== undefined && !(Array.isArray(v) && v.length === 0)
@@ -50,64 +75,73 @@ function enforceLanguageRules(tokens, rules=[], vars=[]){
   )
 
   // clean up function keys
-  rules = rules.map(e => {
-    const unprocessedFunctionName = Object.keys(e)[0]
+  return rules.map(e => {
+    const rawName = Object.keys(e)[0]
     let obj = {}
-    if(unprocessedFunctionName.includes('=')){
-      const unprocessedNameParts = unprocessedFunctionName.split('=')[0].trim().split(/\s+/)
-      const functionName = unprocessedNameParts[unprocessedNameParts.length - 1]
-      obj[functionName] = Object.values(e)[0]
-      return obj
-    } else {
-      const unprocessedNameParts = unprocessedFunctionName.split('function')
-      let functionName= unprocessedNameParts[unprocessedNameParts.length - 1].trim()
-      if (functionName.endsWith("(")) {
-        functionName = functionName.slice(0, -1);
-      }
-      obj[functionName] = Object.values(e)[0]
-      return obj
-    }
-  })
+    let functionName
 
+    if (rawName.includes('=')) {
+      const parts = rawName.split('=')[0].trim().split(/\s+/)
+      functionName = parts[parts.length - 1]
+    } else {
+      const parts = rawName.split('function')
+      functionName = parts[parts.length - 1].trim()
+      if (functionName.endsWith("(")) {
+        functionName = functionName.slice(0, -1)
+      }
+    }
+
+    obj[functionName] = Object.values(e)[0]
+    return obj
+  })
+}
+
+/**
+ * Check if the input is valid for compilation
+ * @param {any[]} array of tokens.
+ * @param {Object[]} array of rules.
+ * @param {Object[]} array of variables.
+ * @returns {string[]} - array of just strings.
+ */
+function applyRules(tokens, rules, vars) {
   const ruleNames = rules.map(e => Object.keys(e)[0])
 
-  // Apply rules
-  for(let i = 0; i < tokens.length; i++){
+  for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i]
-    if(typeof token == 'object'){
-      
-      const tokenName = Object.keys(token)[0]
-      let functionCall = false
-      let obj = {}
-      // search through rules if a function is being called
-      for(const ruleName of ruleNames){
-        const name = extractName(tokenName)
-        if(name == ruleName){
-          functionCall = true
-          const currentRule = rules.find(e => Object.keys(e) == ruleName)
-          const validatedTokens = validateRules(Object.values(currentRule)[0], Object.values(token)[0][0], vars)
-          if(validatedTokens == 1){
-            return 1
-          }
-          obj[tokenName] = [[validatedTokens]]
-          tokens[i] = obj
-          break
-        }
-      }
+    if (typeof token !== 'object') continue
 
-      if(!functionCall){
-        const validatedTokens = enforceLanguageRules(Object.values(token)[0], rules, vars)
-        if(validatedTokens == 1){
-          return 1
-        }
-        obj[tokenName] = validatedTokens
+    const tokenName = Object.keys(token)[0]
+    let updated = false
+    let obj = {}
+
+    // check if it's a function call
+    const name = extractName(tokenName)
+    for (const ruleName of ruleNames) {
+      if (name === ruleName) {
+        const currentRule = rules.find(e => Object.keys(e)[0] === ruleName)
+        const validated = validateRules(
+          Object.values(currentRule)[0],
+          Object.values(token)[0][0],
+          vars
+        )
+
+        if (validated === 1) return 1
+        obj[tokenName] = [[validated]]
         tokens[i] = obj
+        updated = true
+        break
       }
+    }
+
+    if (!updated) {
+      const validated = enforceLanguageRules(Object.values(token)[0], rules, vars)
+      if (validated === 1) return 1
+      obj[tokenName] = validated
+      tokens[i] = obj
     }
   }
 
   return tokens
-    
 }
 
 /**
@@ -121,11 +155,11 @@ function extractName(str) {
 }
 
 /**
- * Clears or creates the dist directory, then starts processing.
+ * Check if the rules sunmitted for a function vs the details are valid.
  * @param {any[]} array of rules to check.
  * @param {string} array of details to check the rules against.
  * @param {string[]} array of var declarations.
- * @returns {string[]} - array of just strings.
+ * @returns {string[]} - array of stripped to js strings.
  */
 function validateRules(rules, details, vars){
   if(deepEqual(rules[0], details)) {
@@ -173,9 +207,9 @@ function validateRules(rules, details, vars){
 
 
 /**
- * Clears or creates the dist directory, then starts processing.
- * @param {string} inputPath - File or folder to process.
- * @returns {string[]} - array of just strings.
+ * Transforms the rule list into objects which have names and types for easier comparison
+ * @param {any[]} rule, list to transform.
+ * @returns {Object[]} - list of rule objects.
  */
 function transformRuleList(rule) {
   let newRuleList = []
@@ -207,7 +241,6 @@ function transformRuleList(rule) {
         }
       }
     }
-
   }
   return newRuleList.filter(e => e.value || e.name != '')
 }
