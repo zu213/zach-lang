@@ -186,43 +186,27 @@ const printUser = (
  console.log( 
  `${name} is ${age} years old` 
  ) }
+const test500 = { 
+ name: 'Alice', age: 5 
+ }
 printUser( 
- { 
- name: 'Alice' 
- } 
- )
-// type test
-const typeTest = ( 
- { 
- name ,age = 18 
- } 
- )=>
- { 
- console.log( 
- `${name} is ${age} years old` 
- ) }
-typeTest( 
- { 
- name: 'Alice' 
- } 
+ test500, a 
  )
 const typeTest2 = ( 
- { 
- name,test: { 
- age  
- } 
- } 
+ ject ,te  
  )=>
  { 
  console.log( 
  `${name} is ${age} years old` 
  ) }
+const object1 = { 
+  
+ }
+const object2 = { 
+  
+ }
 typeTest2( 
- { 
- name: 'Alice', test: { 
- age: 5 
- } 
- } 
+ object1, object2 
  )
 const varObj = { 
   
@@ -232,15 +216,6 @@ const varObject = {
  }
 typeTest2( 
  varObj, varObject 
- )
-const typeTest3 = ( 
- { 
-  
- } 
- )=>
- { 
- console.log( 
- 'test' 
- ) } 
+ ) 
  } 
  )
