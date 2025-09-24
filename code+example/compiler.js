@@ -17,7 +17,7 @@ function compileFile(filePath) {
   processedTokens = enforceLanguageRules(tokens) 
 
   if (processedTokens == 1) {
-    console.log(`Error's found failed to compile`)
+    console.log(`Error's found failed to compile ${filePath}`)
     return 1
   } else {
     const processedContent = recursiveJoin(processedTokens)
@@ -34,6 +34,7 @@ function compileFile(filePath) {
  */
 function processAndCopy(inputPath, baseDistPath) {
     const stats = fs.statSync(inputPath);
+    let errored = false
 
     if (stats.isFile()) {
         const distFilePath = path.join(baseDistPath, path.relative(path.resolve(inputPath, '..'), inputPath));
@@ -56,15 +57,17 @@ function processAndCopy(inputPath, baseDistPath) {
         }
     } else if (stats.isDirectory()) {
         const entries = fs.readdirSync(inputPath);
+        console.log('')
         for (const entry of entries) {
             const fullSrc = path.join(inputPath, entry);
             const returnValue = processAndCopy(fullSrc, baseDistPath);
             if(returnValue == 1){
-                return 1
+                errored = true
             }
+            console.log('')
         }
     }
-    return 0
+    return errored ? 1 : 0
 }
 
 

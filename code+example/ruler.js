@@ -104,28 +104,37 @@ function applyRules(tokens, rules, vars) {
   // Setup mapping of function names to rules
   const ruleMap = new Map(rules.map(rule => [Object.keys(rule)[0], Object.values(rule)[0]]))
 
-  return tokens.map(token => {
-    if (typeof token !== "object") return token
+  try {
+    return tokens.map(token => {
+      if (typeof token !== "object") return token
 
-    const tokenName = Object.keys(token)[0]
-    const name = extractName(tokenName)
+      const tokenName = Object.keys(token)[0]
+      const name = extractName(tokenName)
 
-    // Check for validity of rules and get back stripped code
-    if (ruleMap.has(name)) {
-      const validated = validateRules(
-        ruleMap.get(name),
-        Object.values(token)[0][0],
-        vars
-      )
-      if (validated === 1) return 1
-      return { [tokenName]: [[validated]] }
-    }
+      // Check for validity of rules and get back stripped code
+      if (ruleMap.has(name)) {
+        const validated = validateRules(
+          ruleMap.get(name),
+          Object.values(token)[0][0],
+          vars
+        )
+        if (validated == 1){
+          throw new Error('compile error')
+        }
+        return { [tokenName]: [[validated]] }
+      }
 
-    // Recurse deeper if not a function call
-    const validated = enforceLanguageRules(Object.values(token)[0], rules, vars)
-    if (validated === 1) return 1
-    return { [tokenName]: validated }
-  })
+      // Recurse deeper if not a function call
+      const validated = enforceLanguageRules(Object.values(token)[0], rules, vars)
+
+      if (validated == 1){
+        throw new Error('compile error')
+      }
+      return { [tokenName]: validated }
+    })
+  } catch(e) {
+    return 1
+  }
 }
 
 /**
@@ -156,17 +165,18 @@ function validateRules(rules, details, vars){
   if(typeof details == 'object'){
     // For these functiosn if a type is declared it must be declared on all of that level
     console.log(`Error: Inputted raw type instead of tagged variable near: ${recursiveJoin([details]).split('\n').join('')}`)
-    ///errored = true
+    return 1
   } else {
-    const newRuleList = transformRuleList(rules)
-    const rule = newRuleList
+    rules = transformRuleList(rules)
+
+    if(rules.length < 1) return [details]
     const detail = details
 
     // I've decided it only take variables as params to simplify so details should be string
-    const splitDetails = detail.split(',')
-    if(splitDetails.length != rule.length){
-      errored = true
-      console.log(`Error: Missing parameter in ${detail}`)
+    let splitDetails = detail.split(',')
+    if(splitDetails.length != rules.length){
+      console.log(`Error: Missing parameter in detail: "${detail}", rule: "${JSON.stringify(rules)}", check those functions with tags all have tags`)
+      return 1
     }
     splitDetails = splitDetails.map(e => e.trim())
     for(let i =0; i < splitDetails.length; i++){
@@ -175,16 +185,17 @@ function validateRules(rules, details, vars){
         errored = true
         console.log(`Error: Invalid type, no corresponding tag found for ${splitDetails[i].trim()}`)
       }
-      else if(correctVar['type'].trim() != rule[i]['type'].trim()){
+      else if(correctVar['type'].trim() != rules[i]['tag'].trim()){
         errored = true
-        console.log(`Error: Invalid type, expected ${rule[i]['type']} got ${correctVar['type']}`)
+        console.log(`Error: Invalid type, expected ${rules[i]['tag']} got ${correctVar['type']}`)
       }
     }
-
     // Use errored so we can collect all the errors
   }
 
-  if(errored) return 1
+  if(errored) {
+    return 1
+  } 
 
   return details
 }

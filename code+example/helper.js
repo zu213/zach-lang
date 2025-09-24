@@ -60,4 +60,4 @@ function deepEqual(a, b) {
   return false;
 }
 
-module.exports = { deepEqual }
+module.exports = { deepEqual, flattenTokens, printTokens }
