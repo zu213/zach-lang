@@ -1,0 +1,25 @@
+{
+  "name": "zl",
+  "displayName": "zl-highlighter",
+  "description": "Highlight zl syntax",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "zl",
+      "aliases": ["zach-lang", "zl"],
+      "extensions": [".zl"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "zl",
+      "scopeName": "source.js",
+      "path": "./syntaxes/javascript.tmLanguage.json"
+    }]
+  }
+}
