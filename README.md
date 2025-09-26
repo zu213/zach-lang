@@ -1,6 +1,11 @@
 # Zach lang
 
-Custom zl language compiler
+Custom .zl language compiler, zl uses tags instead of types to enforce paramter safety.
+
+<figure style='width: 400px'>
+  <img src='./zachlang.png' />
+  <figcaption style='text-align: center'>Fig.1 - Diagram of how .zl files are compiled to .js</figcaption>
+</figure>
 
 ## What is zl
 
